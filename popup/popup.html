@@ -10,79 +10,91 @@
     <!-- Header -->
     <header class="app-header">
       <div class="header-left">
-        <div class="radar-logo-pulse">
+        <div class="radar-logo-wrap">
           <img src="../icons/icon48.png" alt="Radar" class="logo-img" />
-          <span class="live-dot" id="liveDot"></span>
+          <span class="live-indicator" id="liveDot"></span>
         </div>
         <div>
-          <div class="app-title">Bybit P2P Radar</div>
-          <div class="cookie-status" id="cookieStatus">
-            <span class="cookie-indicator" id="cookieIndicator"></span>
+          <div class="brand-title">
+            Bybit P2P Radar
+            <span class="brand-badge">PRO</span>
+          </div>
+          <div class="cookie-pill" id="cookieStatus">
+            <span class="cookie-dot" id="cookieIndicator"></span>
             <span id="cookieText">Проверка куки...</span>
           </div>
         </div>
       </div>
 
       <div class="header-right">
-        <label class="switch-toggle" title="Включить / Выключить мониторинг">
+        <label class="switch-control" title="Включить / Выключить мониторинг">
           <input type="checkbox" id="toggleMonitoring">
-          <span class="slider"></span>
+          <span class="switch-track"></span>
         </label>
-        <span class="status-badge" id="monitorStatusBadge">ВЫКЛ</span>
+        <span class="state-tag" id="monitorStatusBadge">ВЫКЛ</span>
       </div>
     </header>
 
-    <!-- Navigation Tabs -->
-    <nav class="tabs-nav">
-      <button class="tab-btn active" data-tab="tab-radar">
-        <span class="tab-icon">🎯</span> Радар
-        <span class="badge-count" id="matchesCount">0</span>
-      </button>
-      <button class="tab-btn" data-tab="tab-filters">
-        <span class="tab-icon">⚙️</span> Фильтры
-      </button>
-      <button class="tab-btn" data-tab="tab-blacklist">
-        <span class="tab-icon">🚫</span> Стоп-слова
-      </button>
-      <button class="tab-btn" data-tab="tab-alerts">
-        <span class="tab-icon">🔔</span> Оповещения
-      </button>
+    <!-- Navigation: Segmented Bar -->
+    <nav class="tabs-segmented">
+      <div class="segmented-bar">
+        <button class="tab-item active" data-tab="tab-radar">
+          <svg class="tab-icon-svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 2a6 6 0 110 12 6 6 0 010-12zm0 3a3 3 0 100 6 3 3 0 000-6z"/></svg>
+          Радар
+          <span class="tab-badge" id="matchesCount">0</span>
+        </button>
+        <button class="tab-item" data-tab="tab-filters">
+          <svg class="tab-icon-svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd"/></svg>
+          Фильтры
+        </button>
+        <button class="tab-item" data-tab="tab-blacklist">
+          <svg class="tab-icon-svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944z" clip-rule="evenodd"/></svg>
+          Стоп-слова
+        </button>
+        <button class="tab-item" data-tab="tab-alerts">
+          <svg class="tab-icon-svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
+          Оповещения
+        </button>
+      </div>
     </nav>
 
-    <!-- Main Content Area -->
+    <!-- Main Content -->
     <main class="tabs-content">
       <!-- TAB 1: RADAR (FEED & LIVE METRICS) -->
       <section id="tab-radar" class="tab-pane active">
-        <div class="metrics-row">
-          <div class="metric-card">
-            <div class="metric-label">Рыночная цена</div>
-            <div class="metric-value" id="marketPriceDisplay">-- ₽</div>
+        <div class="metrics-grid">
+          <div class="stat-box">
+            <div class="stat-label">Рынок (Топ)</div>
+            <div class="stat-value" id="marketPriceDisplay">-- ₽</div>
           </div>
-          <div class="metric-card highlight">
-            <div class="metric-label">Порог выгоды</div>
-            <div class="metric-value" id="targetThresholdDisplay">--</div>
+          <div class="stat-box featured">
+            <div class="stat-label">Порог выгоды</div>
+            <div class="stat-value" id="targetThresholdDisplay">--</div>
           </div>
-          <div class="metric-card">
-            <div class="metric-label">Сумма обмена</div>
-            <div class="metric-value" id="targetAmountDisplay">1400 ₽</div>
+          <div class="stat-box">
+            <div class="stat-label">Сумма сделки</div>
+            <div class="stat-value" id="targetAmountDisplay">1400 ₽</div>
           </div>
         </div>
 
-        <div class="status-bar" id="statusBar">
-          <span class="status-icon">ℹ️</span>
+        <div class="status-ticker" id="statusBar">
+          <svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
           <span id="statusMessage">Нажмите переключатель вверху для старта</span>
         </div>
 
-        <div class="section-title-row">
-          <span class="section-title">🔥 Найденные выгодные ордера</span>
-          <button class="btn-text" id="clearMatchesBtn">Очистить ленту</button>
+        <div class="section-head">
+          <span class="head-title">
+            <span style="color: var(--brand-gold);">⚡</span>
+            Пойманные выгодные ордера
+          </span>
+          <button class="btn-ghost" id="clearMatchesBtn">Очистить ленту</button>
         </div>
 
-        <div class="feed-container" id="feedList">
-          <div class="empty-feed" id="emptyFeed">
-            <div class="empty-radar-anim"></div>
-            <p>Нет пойманных ордеров</p>
-            <span>Включите радар. При появлении дешевого ордера здесь появится карточка и прозвучит сигнал!</span>
+        <div class="feed-stream" id="feedList">
+          <div class="empty-view" id="emptyFeed">
+            <div class="empty-pulse-radar"></div>
+            <h4>Радар в режиме ожидания</h4>
+            <p>Включите тумблер вверху. При обнаружении аномально дешёвого ордера прозвучит сигнал и здесь появится карточка.</p>
           </div>
         </div>
       </section>
@@ -90,19 +102,19 @@
       <!-- TAB 2: FILTERS -->
       <section id="tab-filters" class="tab-pane">
         <form id="filtersForm">
-          <div class="form-row dual">
-            <div class="form-group">
+          <div class="field-grid-2">
+            <div class="form-field">
               <label for="filterToken">Криптовалюта</label>
-              <select id="filterToken" class="form-control">
+              <select id="filterToken" class="input-box">
                 <option value="USDT" selected>USDT</option>
                 <option value="BTC">BTC</option>
                 <option value="ETH">ETH</option>
                 <option value="USDC">USDC</option>
               </select>
             </div>
-            <div class="form-group">
+            <div class="form-field">
               <label for="filterFiat">Фиатная валюта</label>
-              <select id="filterFiat" class="form-control">
+              <select id="filterFiat" class="input-box">
                 <option value="RUB" selected>RUB (₽)</option>
                 <option value="KZT">KZT (₸)</option>
                 <option value="BYN">BYN</option>
@@ -113,102 +125,102 @@
             </div>
           </div>
 
-          <div class="form-group">
-            <label for="filterSide">Направление торговли</label>
-            <select id="filterSide" class="form-control">
-              <option value="1" selected>Покупка крипты (Ищу самые ДЕШЕВЫЕ ордеры)</option>
-              <option value="0">Продажа крипты (Ищу самые ДОРОГИЕ ордеры)</option>
+          <div class="form-field">
+            <label for="filterSide">Направление сделки</label>
+            <select id="filterSide" class="input-box">
+              <option value="1" selected>Покупка крипты (Ищу самые ДЕШЁВЫЕ ордера)</option>
+              <option value="0">Продажа крипты (Ищу самые ДОРОГИЕ ордера)</option>
             </select>
           </div>
 
-          <div class="form-group highlight-box">
+          <div class="form-field panel-featured">
             <label for="filterTargetAmount">
               Ваша сумма сделки (фиат)
-              <span class="info-tip" title="Отсекает объявления, если сумма не попадает в лимиты продавца">❓</span>
+              <span class="info-tip" title="Проверяет, чтобы сумма строго входила в лимиты продавца">❓</span>
             </label>
-            <div class="input-with-addon">
-              <input type="number" id="filterTargetAmount" class="form-control" placeholder="Например: 1400" value="1400" min="1">
-              <span class="input-addon" id="amountCurrencyAddon">RUB</span>
+            <div class="addon-wrap">
+              <input type="number" id="filterTargetAmount" class="input-box" placeholder="1400" value="1400" min="1">
+              <span class="addon-text" id="amountCurrencyAddon">RUB</span>
             </div>
-            <small class="field-hint">Ордер должен принимать эту сумму (min ≤ сумма ≤ max)</small>
+            <small class="helper-text">Ордер должен принимать эту сумму (min ≤ сумма ≤ max)</small>
           </div>
 
-          <div class="form-group highlight-box" style="border-color: rgba(0, 230, 118, 0.4); background: rgba(0, 230, 118, 0.05);">
-            <label for="filterThirdPartyMode" style="color: var(--accent-green); font-weight: 700;">
+          <!-- 3rd Party Mode -->
+          <div class="form-field panel-third-party">
+            <label for="filterThirdPartyMode" style="color: var(--green-buy); font-weight: 700;">
               👤 Доступность оплаты с 3-го лица
-              <span class="info-tip" title="Поиск предложений, где разрешена оплата с чужих карт">❓</span>
             </label>
-            <select id="filterThirdPartyMode" class="form-control" style="border-color: rgba(0, 230, 118, 0.5);">
+            <select id="filterThirdPartyMode" class="input-box" style="border-color: rgba(14, 203, 129, 0.4);">
               <option value="explicit_only" selected>🟢 Строго ТОЛЬКО где 3-е лицо РАЗРЕШЕНО («3 лицо можно», «3 приму», «любое лицо»)</option>
               <option value="allow_and_neutral">🟡 Разрешено + Без ограничений (блокировать «3 лицо НЕ беру / только 1 лицо»)</option>
               <option value="off">⚪ Не фильтровать 3-е лицо</option>
             </select>
-            <small class="field-hint">Ищет фразы: «3 лицо можно», «3 приму», «1 и 3 лицо», «любое лицо», «с любых карт»</small>
+            <small class="helper-text">Ищет: «3 лицо можно», «3 приму», «1 и 3 лицо», «любое лицо», «с любых карт»</small>
           </div>
 
-          <div class="form-group">
+          <div class="form-field">
             <label>Способы оплаты</label>
-            <div class="payment-pills">
-              <label class="pill-checkbox">
+            <div class="pills-group">
+              <label class="pill-option">
                 <input type="checkbox" name="payment" value="582" checked>
-                <span>Т-Банк (Тинькофф)</span>
+                <span>Т-Банк</span>
               </label>
-              <label class="pill-checkbox">
+              <label class="pill-option">
                 <input type="checkbox" name="payment" value="581" checked>
                 <span>Сбербанк</span>
               </label>
-              <label class="pill-checkbox">
+              <label class="pill-option">
                 <input type="checkbox" name="payment" value="382">
-                <span>СБП (Быстрые платежи)</span>
+                <span>СБП</span>
               </label>
-              <label class="pill-checkbox">
+              <label class="pill-option">
                 <input type="checkbox" name="payment" value="62">
                 <span>Райффайзен</span>
               </label>
-              <label class="pill-checkbox">
+              <label class="pill-option">
                 <input type="checkbox" id="paymentAll">
-                <span>Любой способ</span>
+                <span>Любой банк</span>
               </label>
             </div>
           </div>
 
-          <div class="form-group">
-            <label for="filterTriggerMode">Как определять выгодность ордера?</label>
-            <select id="filterTriggerMode" class="form-control">
+          <div class="form-field">
+            <label for="filterTriggerMode">Критерий выгоды ордера</label>
+            <select id="filterTriggerMode" class="input-box">
               <option value="market_diff" selected>Дешевле рынка на сумму (в рублях/валюте)</option>
-              <option value="discount_percent">Скидка от рыночной цены (в процентах %)</option>
-              <option value="fixed_price">Жесткий порог (цена не выше указанной)</option>
+              <option value="discount_percent">Скидка от рынка (в процентах %)</option>
+              <option value="fixed_price">Фиксированный порог (цена не выше указанной)</option>
             </select>
           </div>
 
-          <div class="form-group" id="triggerDiffGroup">
+          <div class="form-field" id="triggerDiffGroup">
             <label for="filterMinDiscountDiff">Разница с рынком (минимум)</label>
-            <div class="input-with-addon">
-              <input type="number" step="0.1" id="filterMinDiscountDiff" class="form-control" value="1.0">
-              <span class="input-addon">₽</span>
+            <div class="addon-wrap">
+              <input type="number" step="0.1" id="filterMinDiscountDiff" class="input-box" value="1.0">
+              <span class="addon-text">₽</span>
             </div>
-            <small class="field-hint">Например, рынок по 85 ₽, а ордер по 82 ₽ — разница 3 ₽ (сигнал!)</small>
+            <small class="helper-text">Например: рынок по 85 ₽, ордер за 82 ₽ — разница 3 ₽ (сигнал!)</small>
           </div>
 
-          <div class="form-group" id="triggerPercentGroup" style="display:none;">
+          <div class="form-field" id="triggerPercentGroup" style="display:none;">
             <label for="filterMinDiscountPercent">Скидка от рынка (минимум)</label>
-            <div class="input-with-addon">
-              <input type="number" step="0.1" id="filterMinDiscountPercent" class="form-control" value="1.5">
-              <span class="input-addon">%</span>
+            <div class="addon-wrap">
+              <input type="number" step="0.1" id="filterMinDiscountPercent" class="input-box" value="1.5">
+              <span class="addon-text">%</span>
             </div>
           </div>
 
-          <div class="form-group" id="triggerFixedGroup" style="display:none;">
+          <div class="form-field" id="triggerFixedGroup" style="display:none;">
             <label for="filterFixedTargetPrice">Целевая максимальная цена</label>
-            <div class="input-with-addon">
-              <input type="number" step="0.01" id="filterFixedTargetPrice" class="form-control" value="83.00">
-              <span class="input-addon">₽</span>
+            <div class="addon-wrap">
+              <input type="number" step="0.01" id="filterFixedTargetPrice" class="input-box" value="83.00">
+              <span class="addon-text">₽</span>
             </div>
           </div>
 
-          <div class="form-group">
-            <label for="filterInterval">Интервал опроса API</label>
-            <select id="filterInterval" class="form-control">
+          <div class="form-field">
+            <label for="filterInterval">Интервал сканирования</label>
+            <select id="filterInterval" class="input-box">
               <option value="3">3 секунды (Сверхбыстрый)</option>
               <option value="5" selected>5 секунд (Рекомендуемый)</option>
               <option value="10">10 секунд</option>
@@ -216,128 +228,119 @@
             </select>
           </div>
 
-          <button type="submit" class="btn btn-primary" id="saveFiltersBtn">Сохранить настройки</button>
+          <button type="submit" class="btn-primary-action" id="saveFiltersBtn">Сохранить фильтры</button>
         </form>
       </section>
 
       <!-- TAB 3: BLACKLIST & TERMS -->
       <section id="tab-blacklist" class="tab-pane">
-        <div class="info-alert">
-          <strong>🛡️ Защита от скрытых условий и дропов</strong>
-          <p>Радар автоматически отсекает объявления со скрытыми комиссиями, требованиями отправки от 3-го лица и навязанными дробями сумм.</p>
+        <div class="panel-alert">
+          <strong style="color:#FFF;">🛡️ Защита от скрытых комиссий и условий</strong>
+          <p>Радар защищает от навязанных поборов («к0миcciя 6ОО», «+200р»), чеков из банкоматов и требований отправки только от первого лица.</p>
         </div>
 
-        <div class="form-group">
-          <label class="checkbox-container">
+        <div class="form-field">
+          <label class="custom-checkbox-row">
             <input type="checkbox" id="filterEnableBlacklist" checked>
-            <span class="checkmark"></span>
-            <strong>Включить фильтрацию описания (Стоп-слова)</strong>
+            <strong>Включить фильтрацию условий и стоп-слов</strong>
           </label>
         </div>
 
-        <div class="form-group">
-          <label>Добавить новое стоп-слово / фразу</label>
-          <div class="input-with-button">
-            <input type="text" id="newStopWordInput" class="form-control" placeholder="Например: комиссия 300">
-            <button type="button" class="btn btn-secondary" id="addStopWordBtn">+ Добавить</button>
+        <div class="form-field">
+          <label>Добавить своё стоп-слово / фразу</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="newStopWordInput" class="input-box" placeholder="Например: комиссия 300">
+            <button type="button" class="btn-secondary-action" id="addStopWordBtn">+ Добавить</button>
           </div>
         </div>
 
-        <div class="form-group">
-          <div class="flex-between mb-4">
+        <div class="form-field">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
             <label>Активные стоп-слова (<span id="stopWordsCount">0</span>):</label>
-            <button type="button" class="btn-text-danger" id="resetStopWordsBtn">Сброс к базовым</button>
+            <button type="button" class="btn-ghost" style="color: var(--red-sell);" id="resetStopWordsBtn">Сброс к базовым</button>
           </div>
-          <div class="stop-words-container" id="stopWordsList">
+          <div class="chips-deck" id="stopWordsList">
             <!-- Dynamic chips -->
           </div>
         </div>
 
-        <hr class="divider">
+        <hr class="separator">
 
-        <h3 class="subheading">Фильтры мерчантов</h3>
-
-        <div class="form-row dual">
-          <div class="form-group">
-            <label for="filterMinOrders">Мин. завершенных сделок</label>
-            <input type="number" id="filterMinOrders" class="form-control" value="15" min="0">
+        <div class="field-grid-2">
+          <div class="form-field">
+            <label for="filterMinOrders">Мин. сделок мерчанта</label>
+            <input type="number" id="filterMinOrders" class="input-box" value="15" min="0">
           </div>
-          <div class="form-group">
+          <div class="form-field">
             <label for="filterMinRate">Мин. % выполнения</label>
-            <div class="input-with-addon">
-              <input type="number" id="filterMinRate" class="form-control" value="85" min="0" max="100">
-              <span class="input-addon">%</span>
+            <div class="addon-wrap">
+              <input type="number" id="filterMinRate" class="input-box" value="85" min="0" max="100">
+              <span class="addon-text">%</span>
             </div>
           </div>
         </div>
 
-        <div class="form-group">
-          <label class="checkbox-container">
+        <div class="form-field">
+          <label class="custom-checkbox-row">
             <input type="checkbox" id="filterOnlyVerified">
-            <span class="checkmark"></span>
             <span>Только проверенные мерчанты (PRO / Auth Maker)</span>
           </label>
         </div>
 
-        <button type="button" class="btn btn-primary" id="saveBlacklistBtn">Сохранить правила защиты</button>
+        <button type="button" class="btn-primary-action" id="saveBlacklistBtn">Сохранить правила защиты</button>
       </section>
 
-      <!-- TAB 4: ALERTS & ACTIONS -->
+      <!-- TAB 4: ALERTS & NOTIFICATIONS -->
       <section id="tab-alerts" class="tab-pane">
-        <div class="form-group">
-          <label class="checkbox-container">
+        <div class="form-field">
+          <label class="custom-checkbox-row">
             <input type="checkbox" id="alertEnableSound" checked>
-            <span class="checkmark"></span>
             <strong>Звуковой сигнал при нахождении ордера</strong>
           </label>
         </div>
 
-        <div class="form-row dual align-end">
-          <div class="form-group">
+        <div class="field-grid-2" style="align-items: flex-end;">
+          <div class="form-field">
             <label for="alertSoundType">Мелодия оповещения</label>
-            <select id="alertSoundType" class="form-control">
+            <select id="alertSoundType" class="input-box">
               <option value="alert" selected>🔔 Двойной колокольчик</option>
               <option value="radar">📡 Сонар радара (Ping)</option>
-              <option value="cash">💰 Звон монет (Cash)</option>
+              <option value="cash">💰 Звон кассы (Cash)</option>
             </select>
           </div>
-          <div class="form-group">
-            <button type="button" class="btn btn-secondary w-100" id="testSoundBtn">🔊 Тест звука</button>
+          <div class="form-field">
+            <button type="button" class="btn-secondary-action" style="width: 100%;" id="testSoundBtn">🔊 Тест звука</button>
           </div>
         </div>
 
-        <hr class="divider">
+        <hr class="separator">
 
-        <div class="form-group">
-          <label class="checkbox-container">
+        <div class="form-field">
+          <label class="custom-checkbox-row">
             <input type="checkbox" id="alertEnablePush" checked>
-            <span class="checkmark"></span>
             <strong>Системные push-уведомления Chrome</strong>
           </label>
-          <small class="field-hint">Клик по уведомлению сразу откроет страницу сделки</small>
+          <small class="helper-text">Клик по уведомлению мгновенно открывает сделку</small>
         </div>
 
-        <div class="form-group">
-          <label class="checkbox-container">
+        <div class="form-field">
+          <label class="custom-checkbox-row">
             <input type="checkbox" id="alertAutoOpenTab">
-            <span class="checkmark"></span>
-            <strong>Автоматически открывать страницу ордера в новой вкладке</strong>
+            <strong>Автоматически открывать карточку сделки</strong>
           </label>
-          <small class="field-hint">Позволяет моментально занять ордер без задержек</small>
+          <small class="helper-text">Открывает ордер в новой вкладке сразу после обнаружения</small>
         </div>
 
-        <hr class="divider">
+        <hr class="separator">
 
-        <div class="form-group">
-          <button type="button" class="btn btn-primary" id="saveAlertsBtn">Сохранить настройки оповещений</button>
-        </div>
+        <button type="button" class="btn-primary-action" id="saveAlertsBtn">Сохранить оповещения</button>
       </section>
     </main>
 
     <!-- Footer -->
     <footer class="app-footer">
       <span id="lastCheckTimestamp">Последняя проверка: --</span>
-      <button class="footer-link" id="openBybitP2pBtn">Открыть Bybit P2P ↗</button>
+      <button class="footer-action-link" id="openBybitP2pBtn">Открыть Bybit P2P ↗</button>
     </footer>
   </div>
 

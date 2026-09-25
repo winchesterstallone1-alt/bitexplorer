@@ -1,5 +1,4 @@
 // popup.js - Controller for Bybit P2P Radar popup interface
-
 let currentSettings = null;
 let pollStateInterval = null;
 
@@ -18,7 +17,7 @@ window.addEventListener('unload', () => {
 
 /* Tabs Navigation */
 function initTabs() {
-  const tabs = document.querySelectorAll('.tab-btn');
+  const tabs = document.querySelectorAll('.tab-item');
   const panes = document.querySelectorAll('.tab-pane');
 
   tabs.forEach(tab => {
@@ -92,7 +91,7 @@ function initEventListeners() {
   document.getElementById('resetStopWordsBtn').addEventListener('click', handleResetStopWords);
   document.getElementById('saveBlacklistBtn').addEventListener('click', async () => {
     await saveBlacklistSettings();
-    showToast('Черный список сохранен!');
+    showToast('Правила защиты сохранены!');
   });
 
   // Alerts Actions
@@ -198,10 +197,10 @@ function updateCookieUI(session) {
   if (!session) return;
 
   if (session.connected && session.count > 0) {
-    indicator.className = 'cookie-indicator ok';
+    indicator.className = 'cookie-dot ok';
     text.textContent = `Куки Bybit активны (${session.count})`;
   } else {
-    indicator.className = 'cookie-indicator warn';
+    indicator.className = 'cookie-dot warn';
     text.textContent = 'Куки Bybit не найдены (откройте bybit.com)';
   }
 }
@@ -334,12 +333,12 @@ function renderStopWords(words) {
   container.innerHTML = '';
   words.forEach((word, index) => {
     const chip = document.createElement('span');
-    chip.className = 'stop-chip';
+    chip.className = 'chip-tag';
     chip.innerHTML = `
       <span>${escapeHtml(word)}</span>
-      <span class="stop-chip-remove" data-index="${index}" title="Удалить">✕</span>
+      <span class="chip-close" data-index="${index}" title="Удалить">✕</span>
     `;
-    chip.querySelector('.stop-chip-remove').addEventListener('click', () => {
+    chip.querySelector('.chip-close').addEventListener('click', () => {
       removeStopWord(index);
     });
     container.appendChild(chip);
@@ -388,7 +387,6 @@ function renderMatchesFeed(matches) {
 
   if (!matches || matches.length === 0) {
     emptyView.style.display = 'block';
-    // Clear any rendered cards except the empty state
     Array.from(container.children).forEach(child => {
       if (child.id !== 'emptyFeed') child.remove();
     });
@@ -397,53 +395,59 @@ function renderMatchesFeed(matches) {
 
   emptyView.style.display = 'none';
 
-  // Render cards
   const existingCards = container.querySelectorAll('.order-card');
   existingCards.forEach(c => c.remove());
 
   matches.forEach(item => {
     const card = document.createElement('div');
-    card.className = 'order-card hot-deal';
+    card.className = 'order-card promoted';
 
     const paymentsList = (item.payments || []).map(p => {
-      const name = getPaymentName(p);
-      return `<span class="payment-tag">${name}</span>`;
+      return getPaymentBadgeHtml(p);
     }).join(' ');
 
-    const verifiedBadge = item.authMaker ? '<span class="verified-icon" title="Проверенный мерчант">✓ PRO</span>' : '';
+    const verifiedBadge = item.authMaker ? '<span class="pro-badge" title="PRO Мерчант">✓ PRO</span>' : '';
     const formattedTime = new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const tpBadge = item.thirdPartyStatus === 'allowed'
-      ? '<span class="tp-badge allowed">👤 3-е лицо РАЗРЕШЕНО</span>'
-      : '<span class="tp-badge neutral">⚪ 3-е лицо нейтрально</span>';
+    const initial = (item.nickName || 'P')[0].toUpperCase();
+
+    const tpChip = item.thirdPartyStatus === 'allowed'
+      ? '<span class="tp-chip allowed">👤 3-е лицо РАЗРЕШЕНО</span>'
+      : '<span class="tp-chip neutral">⚪ 3-е лицо не указано</span>';
 
     card.innerHTML = `
-      <div class="card-top">
-        <div class="card-price-group">
-          <span class="card-price">${item.price} ${item.fiat || 'RUB'}</span>
-          <span class="card-profit-badge">${escapeHtml(item.profitDetails || 'Выгодно')}</span>
-          ${tpBadge}
+      <div class="card-merchant-row">
+        <div class="merchant-profile">
+          <div class="avatar-circle">${escapeHtml(initial)}</div>
+          <div class="merchant-meta">
+            <div class="merchant-name">${escapeHtml(item.nickName)} ${verifiedBadge}</div>
+            <div class="merchant-rates">${item.executeRate}% выполнено • ${item.orderNum} сделок</div>
+          </div>
         </div>
-        <span class="card-time">${formattedTime}</span>
+        <span class="card-timestamp">${formattedTime}</span>
       </div>
 
-      <div class="card-merchant">
-        <strong>${escapeHtml(item.nickName)}</strong> ${verifiedBadge}
-        <span class="merchant-stats">• ${item.executeRate}% (${item.orderNum} сделок)</span>
+      <div class="card-price-row">
+        <div class="price-main">${item.price} ${item.fiat || 'RUB'}</div>
+        <div class="profit-pill">${escapeHtml(item.profitDetails || 'Выгодно')}</div>
       </div>
 
-      <div class="card-details">
-        <div class="card-limits">Лимиты: <strong>${item.minAmount} - ${item.maxAmount} ${item.fiat || 'RUB'}</strong></div>
-        <div class="card-payments">${paymentsList || '<span class="payment-tag">Любой банк</span>'}</div>
+      <div class="card-third-party-row">
+        ${tpChip}
       </div>
 
-      ${item.remark ? `<div class="card-remark" title="${escapeHtml(item.remark)}">${escapeHtml(item.remark)}</div>` : ''}
+      <div class="card-spec-grid">
+        <div class="spec-line">Лимиты: <strong>${item.minAmount} - ${item.maxAmount} ${item.fiat || 'RUB'}</strong></div>
+        <div class="payments-flow">${paymentsList || '<span class="bank-pill bank-generic">Любой банк</span>'}</div>
+      </div>
 
-      <button class="btn-open-deal" data-id="${item.id}" data-token="${item.token || 'USDT'}" data-fiat="${item.fiat || 'RUB'}">
+      ${item.remark ? `<div class="card-remark-box" title="${escapeHtml(item.remark)}">💬 ${escapeHtml(item.remark)}</div>` : ''}
+
+      <button class="btn-cta-buy" data-id="${item.id}" data-token="${item.token || 'USDT'}" data-fiat="${item.fiat || 'RUB'}">
         Забрать ордер на Bybit ↗
       </button>
     `;
 
-    card.querySelector('.btn-open-deal').addEventListener('click', (e) => {
+    card.querySelector('.btn-cta-buy').addEventListener('click', (e) => {
       const btn = e.currentTarget;
       const adId = btn.getAttribute('data-id');
       const token = btn.getAttribute('data-token');
@@ -460,16 +464,18 @@ function updateMatchesCount(count) {
   document.getElementById('matchesCount').textContent = count;
 }
 
-function getPaymentName(id) {
-  const map = {
-    '582': 'Т-Банк',
-    '581': 'Сбербанк',
-    '382': 'СБП',
-    '62': 'Райффайзен',
-    '14': 'Сбер',
-    '64': 'Тинькофф'
-  };
-  return map[String(id)] || `Банк #${id}`;
+function getPaymentBadgeHtml(id) {
+  const sId = String(id);
+  if (sId === '582' || sId === '64') {
+    return '<span class="bank-pill bank-tinkoff">Т-Банк</span>';
+  } else if (sId === '581' || sId === '14') {
+    return '<span class="bank-pill bank-sber">Сбербанк</span>';
+  } else if (sId === '382') {
+    return '<span class="bank-pill bank-sbp">СБП</span>';
+  } else if (sId === '62') {
+    return '<span class="bank-pill bank-raiff">Райффайзен</span>';
+  }
+  return `<span class="bank-pill bank-generic">Банк #${sId}</span>`;
 }
 
 function showToast(msg) {
@@ -477,10 +483,10 @@ function showToast(msg) {
   const msgEl = document.getElementById('statusMessage');
   const prev = msgEl.textContent;
   msgEl.textContent = `✓ ${msg}`;
-  sb.style.borderColor = 'var(--accent-green)';
+  sb.style.borderColor = 'var(--green-buy)';
   setTimeout(() => {
     msgEl.textContent = prev;
-    sb.style.borderColor = 'var(--border-color)';
+    sb.style.borderColor = 'var(--border-subtle)';
   }, 2500);
 }
 
