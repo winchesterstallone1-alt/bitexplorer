@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "Bybit P2P Radar - Мониторинг выгодных объявлений",
+  "version": "1.0.0",
+  "description": "Автоматический мониторинг выгодных и дешевых ордеров на Bybit P2P, работа через cookies, фильтрация стоп-слов и скрытых комиссий.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": [
+    "storage",
+    "alarms",
+    "notifications",
+    "cookies",
+    "offscreen"
+  ],
+  "host_permissions": [
+    "*://*.bybit.com/*",
+    "https://api2.bybit.com/*",
+    "https://www.bybit.com/*"
+  ],
+  "background": {
+    "service_worker": "background/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Bybit P2P Radar",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.bybit.com/*"
+      ],
+      "js": [
+        "content/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

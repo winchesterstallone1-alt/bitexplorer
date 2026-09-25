@@ -1,0 +1,20 @@
+{
+  "name": "bitexplorer",
+  "version": "1.0.0",
+  "description": "Chrome Browser Extension for monitoring profitable Bybit P2P offers using cookies, smart filters and alerts",
+  "type": "module",
+  "scripts": {
+    "test": "node test_filter.js"
+  },
+  "keywords": [
+    "bybit",
+    "p2p",
+    "arbitrage",
+    "chrome-extension",
+    "p2p-trading",
+    "crypto",
+    "radar"
+  ],
+  "author": "winchesterstallone1-alt",
+  "license": "MIT"
+}
