@@ -227,6 +227,9 @@ function populateFormFields(s) {
   document.getElementById('amountCurrencyAddon').textContent = s.fiat || 'RUB';
   document.getElementById('filterSide').value = s.side !== undefined ? String(s.side) : '1';
   document.getElementById('filterTargetAmount').value = s.targetAmount || '';
+  if (document.getElementById('filterThirdPartyMode')) {
+    document.getElementById('filterThirdPartyMode').value = s.thirdPartyMode || 'explicit_only';
+  }
   document.getElementById('filterTriggerMode').value = s.triggerMode || 'market_diff';
   document.getElementById('filterMinDiscountDiff').value = s.minDiscountDiff || '1.0';
   document.getElementById('filterMinDiscountPercent').value = s.minDiscountPercent || '1.5';
@@ -279,6 +282,7 @@ async function saveFilterSettings() {
     fiat: document.getElementById('filterFiat').value,
     side: document.getElementById('filterSide').value,
     targetAmount: document.getElementById('filterTargetAmount').value.trim(),
+    thirdPartyMode: document.getElementById('filterThirdPartyMode') ? document.getElementById('filterThirdPartyMode').value : 'explicit_only',
     paymentMethods: selectedPayments,
     triggerMode: document.getElementById('filterTriggerMode').value,
     minDiscountDiff: document.getElementById('filterMinDiscountDiff').value,
@@ -408,12 +412,16 @@ function renderMatchesFeed(matches) {
 
     const verifiedBadge = item.authMaker ? '<span class="verified-icon" title="Проверенный мерчант">✓ PRO</span>' : '';
     const formattedTime = new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const tpBadge = item.thirdPartyStatus === 'allowed'
+      ? '<span class="tp-badge allowed">👤 3-е лицо РАЗРЕШЕНО</span>'
+      : '<span class="tp-badge neutral">⚪ 3-е лицо нейтрально</span>';
 
     card.innerHTML = `
       <div class="card-top">
         <div class="card-price-group">
           <span class="card-price">${item.price} ${item.fiat || 'RUB'}</span>
           <span class="card-profit-badge">${escapeHtml(item.profitDetails || 'Выгодно')}</span>
+          ${tpBadge}
         </div>
         <span class="card-time">${formattedTime}</span>
       </div>

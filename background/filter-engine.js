@@ -1,17 +1,16 @@
-// filter-engine.js - Intelligent filtering for Bybit P2P offers with ironclad anti-obfuscation
+// filter-engine.js - Intelligent filtering for Bybit P2P offers with 3rd-party acceptance detection & anti-obfuscation
 
 export const DEFAULT_STOP_WORDS = [
   'комисси',
   'комса',
-  '3 лицо',
-  '3-е лицо',
-  '3е лицо',
-  'третье лицо',
-  'третьих лиц',
-  '3-го лица',
-  '3го лица',
-  'третьему лицу',
-  'от третьих',
+  '3 лицо не принимаю',
+  '3 лицо не беру',
+  '3 лицо мимо',
+  'не принимаю 3 лицо',
+  'не беру 3 лицо',
+  'от 3 лиц не',
+  'от 3-х лиц не',
+  'без 3 лиц',
   'только 1 лицо',
   'только 1-е лицо',
   'только первое лицо',
@@ -19,6 +18,8 @@ export const DEFAULT_STOP_WORDS = [
   'со своего лица',
   'со своей карты',
   'с чужих карт не',
+  'дропы мимо',
+  'дропы лесом',
   'заходите на суммы',
   'суммы:',
   'чек с банкомата',
@@ -70,7 +71,7 @@ export function normalizeIronclad(str) {
   let deLeeted = '';
   for (let i = 0; i < clean.length; i++) {
     const ch = clean[i];
-    // Contextual leet digit decoding (e.g. '0' in 'к0мисс' -> 'о', '1' in 'л1цо' -> 'и', '3' in '3лuцо' preserved for 3-е лицо)
+    // Contextual leet digit decoding (e.g. '0' in 'к0мисс' -> 'о', '1' in 'л1цо' -> 'и')
     if (ch === '0') {
       const prev = clean[i - 1] || ' ';
       const next = clean[i + 1] || ' ';
@@ -101,7 +102,6 @@ export function normalizeIronclad(str) {
   const collapsed = deLeeted.replace(/([а-яa-z])\1{2,}/gi, '$1$1');
 
   // 5. Compact version: remove all spaces, dots, dashes, underscores between letters
-  // "к . о . м . и . с . с . и . я" -> "комиссия", "3 - е л и ц о" -> "3елицо"
   const compact = collapsed.replace(/[\s\.\,\-\_\*\/\#\:\;\(\)\+]+/g, '');
 
   return {
@@ -113,127 +113,159 @@ export function normalizeIronclad(str) {
 }
 
 /**
- * Ironclad pattern rules for detecting hidden conditions, fees, and requirements
+ * Positive regex: Detects explicit allowance / welcome of 3rd-party payments
+ * Examples: "3 лицо можно", "3 приму", "3 лицо приму", "1 и 3 лицо", "любое лицо", "с любых карт", "3-е лицо да"
  */
-export const IRONCLAD_PATTERNS = [
-  // 1. Commission / Surcharge ("к0миcciя", "комса", "к.о.м.и.с.с.и.я 6ОО", "+200р с вас", "ком. 300")
-  {
-    name: 'Комиссия / Доплата',
-    regex: /(?:к[о0o][мm][иi1!u][сc$]{1,3}|к[о0o][мm][сc$][а-яa-z]*|\bк[о0o][мm]\b|\+\s*\d+\s*(?:р|руб|rub|₽)?\s*(?:с|на|за)|(?:доплат|побор|комса|комсы|с\s*вас\s*\d+))/i,
-    compactRegex: /(?:комис|комс|к0м|доплат|\+\d+р)/i
-  },
-
-  // 2. 3rd-party cards / transfers ("3 лицо не принимаю", "3 лuцо", "от 3-х лиц", "3лицо")
-  {
-    name: '3-е лицо (сторонняя карта)',
-    regex: /(?:3\s*[-_.]?\s*(?:е|ье|ий|ья|ьего|ьих|ьим|им|м)?\s*(?:л[иi1!u][цc]|лиц|карт|card)|(?:от|с)\s*(?:3|трет)[^\w\sа-я]*(?:х|их|ьих|его)?\s*(?:лиц|л[иi1!u][цc]|карт)|(?:не|без)\s*(?:принимаю|перевожу|беру|шлю)?\s*(?:от\s*)?3\s*(?:лиц|л[иi1!u][цc])|3[лl][иi1!u][цc]|треть[иея][^\w\sа-я]*лиц)/i,
-    compactRegex: /(?:3лиц|3-лиц|третьелиц|от3лиц|3карт)/i
-  },
-
-  // 3. Only 1st-person / Strictly own card ("только 1 лицо", "строго со своей", "т0льк0 1 л!цо")
-  {
-    name: 'Требование только 1-го лица',
-    regex: /(?:только|строго|исключительно)\s*(?:с|со|от)?\s*(?:1|перв)[^\w\sа-я]*(?:го|ого|е|ое)?\s*(?:лиц|л[иi1!u]ц|карт|своей)|(?:1|перв)[^\w\sа-я]*(?:ое|е|лиц)\s*(?:лицо|л[иi1!u]цо)|(?:только|строго)\s*(?:со\s*своей|с\s*собственной|своего\s*лица)|(?:чужие|левые|дроп)[^\w\sа-я]*(?:карты|счета|чеки|флаги)/i,
-    compactRegex: /(?:только1лиц|строго1лиц|толькососвоей|дропы|дроп)/i
-  },
-
-  // 4. Fixed batch / forced denominations ("заходите на суммы 500/1000/2000")
-  {
-    name: 'Навязанные фиксированные суммы',
-    regex: /(?:заходите|входите)\s+(?:на\s+)?(?:сумм[ыа]\s+)?\d+|(?:только|строго|суммы:?)\s*(?:на\s*)?(?:сумм[ыа]\s*)?(?:\d+[\s\/\,]+){2,}\d+/i,
-    compactRegex: /заходитенасуммы/i
-  },
-
-  // 5. ATM receipts / holding ("чек с банкомата", "холд 24ч", "сбер первый")
-  {
-    name: 'Чек с банкомата / Холдинг',
-    regex: /(?:чек|фот[оа])\s*(?:с|из)\s*(?:банкомат|терминал)|(?:холдинг|холд|заморозк)\s*\d*|сбер\s*первый/i,
-    compactRegex: /(?:чекбанкомат|холдинг|сберпервый)/i
-  }
-];
+export const POSITIVE_THIRD_PARTY_REGEX = /(?:(?:3|трет)[^\w\sа-я]*(?:е|ье)?\s*(?:лиц[оа]|л[иi1!u]ц[оа]|карты?|card)?\s*(?:можно|приму|принимаю|беру|да|\+|ок|ok|приветствуется|разрешен[оа]|без\s*проблем)|(?:можно|приму|принимаю|беру|разрешен[оа])\s*(?:с|от)?\s*(?:3|трет)[^\w\sа-я]*(?:го|его)?\s*(?:лиц[ао]|л[иi1!u]ц[ао]|карты?)|(?:1|перв)[^\w\sа-я]*(?:ое)?\s*(?:и|\+|\/|,)\s*(?:3|трет)[^\w\sа-я]*(?:е|ье)?\s*(?:лиц[оа]|л[иi1!u]ц[оа]|карты?)|(?:любое|любая|все|каждое)\s*(?:лицо|карта|фио|отправитель)|(?:с\s*любых\s*карт|с\s*любой\s*карты)|(?:с\s*чужих\s*карт|с\s*чужой\s*карты)\s*(?:можно|приму|принимаю|да|\+|ок)|(?:фио|имя)\s*(?:не\s*важно|не\s*имеет\s*значения|любое)|3\s*(?:приму|беру|можно))/i;
 
 /**
- * Checks if description contains any blacklisted stop-words or incompatible denominations
+ * Negative regex: Detects strict prohibition of 3rd-party payments
+ * Examples: "3 лицо не принимаю", "3 лицо мимо", "не беру от 3 лиц", "только 1 лицо", "строго со своей карты", "дропы мимо"
  */
-export function checkDescriptionBlacklist(remark, stopWords = DEFAULT_STOP_WORDS, targetAmount = null) {
-  if (!remark) return { blocked: false, reason: null };
+export const NEGATIVE_THIRD_PARTY_REGEX = /(?:(?:3|трет)[^\w\sа-я]*(?:е|ье)?\s*(?:лиц[оа]|л[иi1!u]ц[оа]|карты?|card)?\s*(?:не|нет|мимо|бан|отказ|лес|блокир|запрет|отклоняю|не\s*принимаю|не\s*беру)|(?:не|нет|без|никаких)\s*(?:принимаю|перевожу|беру|шлю)?\s*(?:с|от)?\s*(?:3|трет)[^\w\sа-я]*(?:х|их|ьих|его)?\s*(?:лиц|л[иi1!u]ц|карт)|(?:только|строго|исключительно)\s*(?:с|со|от)?\s*(?:1|перв)[^\w\sа-я]*(?:го|ого|е|ое)?\s*(?:лиц|л[иi1!u]ц|карт|своей)|(?:1|перв)[^\w\sа-я]*(?:ое|е|лиц)\s*(?:лицо|л[иi1!u]цо)|(?:только|строго)\s*(?:со\s*своей|с\s*собственной|своего\s*лица)|(?:чужие|левые|дроп)[^\w\sа-я]*(?:карты|счета|чеки|флаги)|(?:дроп[ыа]?\s*(?:мимо|лесом|бан|отказ|не|нет))|3лицо\s*(?:не|нет|мимо)|(?:только1лиц|строго1лиц|толькососвоей))/i;
+
+/**
+ * Classifies merchant description regarding 3rd-party payment acceptability
+ */
+export function classifyThirdParty(remark) {
+  if (!remark) return { status: 'neutral', isAllowed: false, text: 'Не указано' };
 
   const norm = normalizeIronclad(remark);
 
-  // 1. Ironclad regex patterns check (covers masked/leetspeak like "к0миcciя 6ОО", "3 лuцо", etc.)
-  for (const pattern of IRONCLAD_PATTERNS) {
-    if (pattern.regex.test(norm.raw) || pattern.regex.test(norm.clean) || pattern.regex.test(norm.deLeeted) || pattern.compactRegex.test(norm.compact)) {
-      // Special validation for denominations:
-      if (pattern.name === 'Навязанные фиксированные суммы' && targetAmount) {
-        const match = norm.clean.match(pattern.regex);
-        if (match) {
-          const numbers = match[0].match(/\b\d+\b/g);
-          if (numbers && numbers.length > 1) {
-            const allowed = numbers.map(Number);
-            if (allowed.includes(Number(targetAmount))) {
-              // User's target amount matches one of the denominations! Allow!
-              continue;
-            }
-            return {
-              blocked: true,
-              reason: `Требуются фиксированные суммы (${allowed.join('/')}), а ваша сумма ${targetAmount}`
-            };
-          }
-        }
-      }
+  // Check positive first: "3 лицо можно", "1 и 3 лицо", "любое лицо"
+  if (POSITIVE_THIRD_PARTY_REGEX.test(norm.raw) || POSITIVE_THIRD_PARTY_REGEX.test(norm.clean) || POSITIVE_THIRD_PARTY_REGEX.test(norm.deLeeted)) {
+    return {
+      status: 'allowed',
+      isAllowed: true,
+      text: '🟢 3-е лицо разрешено'
+    };
+  }
 
+  // Check negative: "3 лицо не принимаю", "только 1 лицо", "строго со своей"
+  if (NEGATIVE_THIRD_PARTY_REGEX.test(norm.raw) || NEGATIVE_THIRD_PARTY_REGEX.test(norm.clean) || NEGATIVE_THIRD_PARTY_REGEX.test(norm.deLeeted) || NEGATIVE_THIRD_PARTY_REGEX.test(norm.compact)) {
+    return {
+      status: 'forbidden',
+      isAllowed: false,
+      text: '🔴 3-е лицо запрещено'
+    };
+  }
+
+  return {
+    status: 'neutral',
+    isAllowed: false,
+    text: '⚪ 3-е лицо: нейтрально (без запретов)'
+  };
+}
+
+/**
+ * Check if description contains fees or unwanted conditions
+ */
+export function checkDescriptionBlacklist(remark, stopWords = DEFAULT_STOP_WORDS, targetAmount = null, thirdPartyMode = 'explicit_only') {
+  if (!remark) {
+    if (thirdPartyMode === 'explicit_only') {
+      return { blocked: true, reason: 'Нет явного подтверждения разрешения 3-го лица' };
+    }
+    return { blocked: false, reason: null, thirdParty: { status: 'neutral', isAllowed: false } };
+  }
+
+  const norm = normalizeIronclad(remark);
+
+  // 1. Check 3rd-party acceptance based on user mode
+  const thirdParty = classifyThirdParty(remark);
+
+  if (thirdPartyMode === 'explicit_only') {
+    // User strictly wants ads where 3rd party is confirmed ("3 лицо можно", "3 приму", "любое лицо")
+    if (thirdParty.status !== 'allowed') {
       return {
         blocked: true,
-        reason: `Обнаружено скрытое условие [${pattern.name}] в описании`
+        reason: thirdParty.status === 'forbidden'
+          ? 'Мерчант запретил 3-е лицо (требует 1-е лицо)'
+          : 'Нет фразы о разрешении 3-го лица ("3 лицо можно / приму")',
+        thirdParty
+      };
+    }
+  } else if (thirdPartyMode === 'allow_and_neutral') {
+    // Block only if merchant explicitly forbids 3rd party
+    if (thirdParty.status === 'forbidden') {
+      return {
+        blocked: true,
+        reason: 'Мерчант запретил оплату с 3-го лица ("3 лицо не беру / только 1 лицо")',
+        thirdParty
       };
     }
   }
 
-  // 2. Custom user-defined stop-words check against all normalized representations
-  if (Array.isArray(stopWords)) {
-    for (const phrase of stopWords) {
-      const p = phrase.trim().toLowerCase();
-      if (!p) continue;
+  // 2. Commission / Surcharge Check (Exempt "без комиссии", "0% комиссия")
+  let cleanNoFee = norm.clean.replace(/(?:без|нет|0%|zero|отсутствует)\s*(?:скрытых\s*)?комисси[а-яa-z0-9]*/gi, '');
+  const commissionRegex = /(?:к[о0o][мm][иi1!u][сc$]{1,3}|к[о0o][мm][сc$][а-яa-z]*|\bк[о0o][мm]\b|\+\s*\d+\s*(?:р|руб|rub|₽)?\s*(?:с|на|за)|(?:доплат|побор|комса|комсы|с\s*вас\s*\d+))/i;
 
-      const pNorm = normalizeIronclad(p);
-
-      if (
-        norm.raw.includes(pNorm.raw) ||
-        norm.clean.includes(pNorm.clean) ||
-        norm.deLeeted.includes(pNorm.deLeeted) ||
-        norm.compact.includes(pNorm.compact)
-      ) {
-        return {
-          blocked: true,
-          reason: `Стоп-слово в описании: "${phrase}"`
-        };
-      }
-    }
+  if (commissionRegex.test(cleanNoFee)) {
+    return {
+      blocked: true,
+      reason: 'Обнаружена скрытая комиссия или доплата',
+      thirdParty
+    };
   }
 
-  // 3. Fallback denomination check if not caught by pattern
-  if (targetAmount) {
-    const denomRegex = /(?:заходите|входите|суммы|только|по)\s+(?:на\s+)?(?:сумм[ыа]\s+)?([0-9\s\/\,\.]+)/i;
+  // 3. ATM receipts / holding ("чек с банкомата", "холд 24ч", "сбер первый")
+  const atmHoldRegex = /(?:чек|фот[оа])\s*(?:с|из)\s*(?:банкомат|терминал)|(?:холдинг|холд|заморозк)\s*\d*|сбер\s*первый/i;
+  if (atmHoldRegex.test(norm.raw) || atmHoldRegex.test(norm.clean)) {
+    return {
+      blocked: true,
+      reason: 'Требуется чек с банкомата или холд',
+      thirdParty
+    };
+  }
+
+  // 4. Fixed batch / forced denominations ("заходите на суммы 500/1000/2000")
+  const denomRegex = /(?:заходите|входите)\s+(?:на\s+)?(?:сумм[ыа]\s+)?\d+|(?:только|строго|суммы:?)\s*(?:на\s*)?(?:сумм[ыа]\s*)?(?:\d+[\s\/\,]+){2,}\d+/i;
+  if (denomRegex.test(norm.clean) && targetAmount) {
     const match = norm.clean.match(denomRegex);
     if (match) {
-      const numbersInRemark = match[1].match(/\b\d+\b/g);
-      if (numbersInRemark && numbersInRemark.length > 1) {
-        const allowedNums = numbersInRemark.map(Number);
-        if (!allowedNums.includes(Number(targetAmount))) {
+      const numbers = match[0].match(/\b\d+\b/g);
+      if (numbers && numbers.length > 1) {
+        const allowed = numbers.map(Number);
+        if (!allowed.includes(Number(targetAmount))) {
           return {
             blocked: true,
-            reason: `Требуются фиксированные суммы (${allowedNums.join('/')}), а у вас ${targetAmount}`
+            reason: `Требуются фиксированные суммы (${allowed.join('/')}), а у вас ${targetAmount}`,
+            thirdParty
           };
         }
       }
     }
   }
 
-  return { blocked: false, reason: null };
+  // 5. Custom user stop-words check
+  if (Array.isArray(stopWords)) {
+    for (const phrase of stopWords) {
+      const p = phrase.trim().toLowerCase();
+      if (!p) continue;
+      const pNorm = normalizeIronclad(p);
+
+      const isCommStopWord = p.includes('комисс') || p.includes('комс');
+      const targetText = isCommStopWord ? cleanNoFee : norm.clean;
+      const targetRaw = isCommStopWord ? cleanNoFee : norm.raw;
+
+      if (
+        targetRaw.includes(pNorm.raw) ||
+        targetText.includes(pNorm.clean) ||
+        targetText.includes(pNorm.deLeeted)
+      ) {
+        return {
+          blocked: true,
+          reason: `Стоп-слово: "${phrase}"`,
+          thirdParty
+        };
+      }
+    }
+  }
+
+  return { blocked: false, reason: null, thirdParty };
 }
 
 /**
- * Evaluates whether an ad passes merchant reputation, limits, and profitability triggers
+ * Evaluates whether an ad passes merchant reputation, limits, 3rd party, and profitability triggers
  */
 export function evaluateAd(item, settings, marketBenchmarkPrice = null) {
   const price = parseFloat(item.price);
@@ -262,20 +294,25 @@ export function evaluateAd(item, settings, marketBenchmarkPrice = null) {
     return { passed: false, reason: `Мин. лимит ордера (${minAmount}) больше максимального фильтра` };
   }
 
-  // 3. Check Blacklist / Stop-words in remark & nickname
+  // 3. Check Blacklist / 3rd Party / Stop-words
+  const thirdPartyMode = settings.thirdPartyMode || 'explicit_only'; // 'explicit_only', 'allow_and_neutral', 'off'
+
   if (settings.enableBlacklist !== false) {
     const stopWords = settings.stopWords || DEFAULT_STOP_WORDS;
-    const remarkCheck = checkDescriptionBlacklist(remark, stopWords, settings.targetAmount);
+    const remarkCheck = checkDescriptionBlacklist(remark, stopWords, settings.targetAmount, thirdPartyMode);
     if (remarkCheck.blocked) {
-      return { passed: false, reason: remarkCheck.reason };
+      return { passed: false, reason: remarkCheck.reason, thirdParty: remarkCheck.thirdParty };
     }
 
     // Also check nickName for suspicious terms
-    const nickCheck = checkDescriptionBlacklist(item.nickName, stopWords);
+    const nickCheck = checkDescriptionBlacklist(item.nickName, stopWords, null, 'off');
     if (nickCheck.blocked) {
       return { passed: false, reason: `Стоп-слово в никнейме: "${nickCheck.reason}"` };
     }
   }
+
+  // Classify 3rd party status for UI badge
+  const thirdParty = classifyThirdParty(remark);
 
   // 4. Merchant reputation checks
   const minOrders = settings.minOrders !== undefined ? Number(settings.minOrders) : 10;
@@ -366,6 +403,8 @@ export function evaluateAd(item, settings, marketBenchmarkPrice = null) {
         executeRate,
         payments: item.payments || [],
         remark,
+        thirdPartyStatus: thirdParty.status,
+        thirdPartyText: thirdParty.text,
         authMaker: !!item.authMaker,
         token: settings.token || 'USDT',
         fiat: settings.fiat || 'RUB',

@@ -133,6 +133,19 @@
             <small class="field-hint">Ордер должен принимать эту сумму (min ≤ сумма ≤ max)</small>
           </div>
 
+          <div class="form-group highlight-box" style="border-color: rgba(0, 230, 118, 0.4); background: rgba(0, 230, 118, 0.05);">
+            <label for="filterThirdPartyMode" style="color: var(--accent-green); font-weight: 700;">
+              👤 Доступность оплаты с 3-го лица
+              <span class="info-tip" title="Поиск предложений, где разрешена оплата с чужих карт">❓</span>
+            </label>
+            <select id="filterThirdPartyMode" class="form-control" style="border-color: rgba(0, 230, 118, 0.5);">
+              <option value="explicit_only" selected>🟢 Строго ТОЛЬКО где 3-е лицо РАЗРЕШЕНО («3 лицо можно», «3 приму», «любое лицо»)</option>
+              <option value="allow_and_neutral">🟡 Разрешено + Без ограничений (блокировать «3 лицо НЕ беру / только 1 лицо»)</option>
+              <option value="off">⚪ Не фильтровать 3-е лицо</option>
+            </select>
+            <small class="field-hint">Ищет фразы: «3 лицо можно», «3 приму», «1 и 3 лицо», «любое лицо», «с любых карт»</small>
+          </div>
+
           <div class="form-group">
             <label>Способы оплаты</label>
             <div class="payment-pills">

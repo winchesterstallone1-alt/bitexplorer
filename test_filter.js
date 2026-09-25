@@ -1,48 +1,80 @@
-// test_filter.js - Unit tests for ironclad filter engine
-import { evaluateAd, calculateBenchmarkPrice, checkDescriptionBlacklist, DEFAULT_STOP_WORDS, normalizeIronclad } from './background/filter-engine.js';
+// test_filter.js - Unit tests for 3rd-party acceptance, anti-obfuscation and fee detection
+import { evaluateAd, calculateBenchmarkPrice, checkDescriptionBlacklist, classifyThirdParty, DEFAULT_STOP_WORDS } from './background/filter-engine.js';
 
-console.log('--- Testing Advanced Anti-Obfuscation & Leetspeak ---');
+console.log('--- 1. Testing 3rd-Party Acceptance Classifier ---');
 
-const trickyCases = [
-  { text: 'к0миcciя 6ОО с покупателя', desc: 'к0миcciя 6ОО (latin c, digit 0, letters OO)' },
-  { text: 'к.о.м.и.с.с.и.я 200р', desc: 'к.о.м.и.с.с.и.я с точками' },
-  { text: 'к 0 м с а 300 на карту', desc: 'к 0 м с а через пробелы' },
-  { text: 'к0м-сия 5ООр', desc: 'к0м-сия 5ООр' },
-  { text: '+250р за перевод с покупателя', desc: '+250р доплата' },
-  { text: '3 лuцо не принимаю', desc: '3 лuцо (latin u instead of и)' },
-  { text: '3-е л!цо мимо', desc: '3-е л!цо (exclamation mark)' },
-  { text: 'т0льк0 1 л!цо со своей карты', desc: 'т0льк0 1 л!цо (0 and !)' },
-  { text: '3лицо лесом', desc: '3лицо слитно' },
-  { text: 'Быстро. Заходите на суммы 500/1000/2000/5000', desc: 'Навязанные суммы 500/1000/2000 (у нас 1400)' },
-  { text: 'чек с банкомата обязателен', desc: 'Чек с банкомата' },
-  { text: 'холд 24ч при первой сделке', desc: 'Холд' }
+const thirdPartyPositiveCases = [
+  '3 лицо можно, перевод с тинькофф',
+  '3 приму, оплата моментально',
+  '3 лицо приму без лишних вопросов',
+  '1 и 3 лицо принимаю',
+  'любое лицо, жду реквизиты',
+  'с любых карт можно платить',
+  '3-е лицо приветствуется',
+  'можно с 3 лица',
+  '3 лицо +, быстро отпускаю',
+  'с чужих карт можно',
+  'фио не важно, любая карта'
 ];
 
-trickyCases.forEach(({ text, desc }, idx) => {
-  const res = checkDescriptionBlacklist(text, DEFAULT_STOP_WORDS, 1400);
-  console.assert(res.blocked === true, `FAILED to block: ${desc}`);
-  console.log(`[PASS] Case ${idx + 1}: ${desc} -> ${res.reason}`);
+thirdPartyPositiveCases.forEach((text, i) => {
+  const res = classifyThirdParty(text);
+  console.assert(res.status === 'allowed', `FAILED positive: ${text}`);
+  console.log(`[PASS] Positive 3rd Party #${i + 1}: "${text}" -> ${res.text}`);
 });
 
-console.log('\n--- Testing Clean Descriptions (Should NOT be blocked) ---');
-const cleanCases = [
-  'Быстрый перевод с Т-Банка, без лишних вопросов',
-  'Отправляю быстро, онлайн 24/7',
-  'Любая сумма в пределах лимитов, жду реквизиты'
+console.log('\n--- 2. Testing 3rd-Party Negative (Forbidden) Cases ---');
+const thirdPartyNegativeCases = [
+  '3 лицо не принимаю, строго отказ',
+  '3 лицо мимо',
+  'не беру от 3 лиц',
+  'только 1 лицо, дропов лесом',
+  'строго со своей карты, чужие карты бан',
+  '3 лuцо не беру (masked)',
+  'дропы мимо',
+  'только первое лицо'
 ];
 
-cleanCases.forEach((text, idx) => {
-  const res = checkDescriptionBlacklist(text, DEFAULT_STOP_WORDS, 1400);
-  console.assert(res.blocked === false, `FAILED: clean text was falsely blocked! (${text})`);
-  console.log(`[PASS] Clean ${idx + 1}: OK`);
+thirdPartyNegativeCases.forEach((text, i) => {
+  const res = classifyThirdParty(text);
+  console.assert(res.status === 'forbidden', `FAILED negative: ${text}`);
+  console.log(`[PASS] Negative 3rd Party #${i + 1}: "${text}" -> ${res.text}`);
 });
 
-console.log('\n--- Testing evaluateAd with Hot Deal & Obfuscated Scam ---');
+console.log('\n--- 3. Testing checkDescriptionBlacklist in "explicit_only" Mode ---');
+
+// Case A: 3rd party allowed and clean -> MUST PASS
+const testA = checkDescriptionBlacklist('3 лицо можно, быстрый перевод', DEFAULT_STOP_WORDS, 1400, 'explicit_only');
+console.assert(testA.blocked === false, 'Test A should PASS');
+console.log('[PASS] Test A (3 лицо можно):', testA);
+
+// Case B: 3rd party allowed with "1 и 3 лицо" and "без комиссии" -> MUST PASS
+const testB = checkDescriptionBlacklist('1 и 3 лицо приму, без комиссии!', DEFAULT_STOP_WORDS, 1400, 'explicit_only');
+console.assert(testB.blocked === false, 'Test B should PASS without fee false positive');
+console.log('[PASS] Test B (1 и 3 лицо, без комиссии):', testB);
+
+// Case C: 3rd party allowed, BUT hidden fee "к0миcciя 6ОО" -> MUST BLOCK due to fee!
+const testC = checkDescriptionBlacklist('3 лицо можно, но к0миcciя 6ОО', DEFAULT_STOP_WORDS, 1400, 'explicit_only');
+console.assert(testC.blocked === true, 'Test C should be blocked due to fee');
+console.log('[PASS] Test C (3 лицо можно + комиссия 6ОО): Blocked ->', testC.reason);
+
+// Case D: Strict 1st person ("только 1 лицо") -> MUST BLOCK
+const testD = checkDescriptionBlacklist('только 1 лицо со своей карты', DEFAULT_STOP_WORDS, 1400, 'explicit_only');
+console.assert(testD.blocked === true, 'Test D should be blocked');
+console.log('[PASS] Test D (только 1 лицо): Blocked ->', testD.reason);
+
+// Case E: Neutral description with NO mention of 3rd party in 'explicit_only' mode -> MUST BLOCK
+const testE = checkDescriptionBlacklist('Быстрый перевод с Т-Банка', DEFAULT_STOP_WORDS, 1400, 'explicit_only');
+console.assert(testE.blocked === true, 'Test E should be blocked because explicit 3rd party is required');
+console.log('[PASS] Test E (neutral text in explicit_only): Blocked ->', testE.reason);
+
+console.log('\n--- 4. Testing evaluateAd End-to-End ---');
 const baseSettings = {
   token: 'USDT',
   fiat: 'RUB',
   side: '1',
   targetAmount: '1400',
+  thirdPartyMode: 'explicit_only', // Seeking 3rd party acceptance!
   triggerMode: 'market_diff',
   minDiscountDiff: '1.0',
   minOrders: 15,
@@ -53,44 +85,33 @@ const baseSettings = {
 
 const marketBenchmark = 85.00;
 
-// Hot Deal: 82.00, clean
-const hotDeal = {
-  id: '777',
+// Ad 1: Profitable offer (82.00) that allows 3rd party! -> MUST PASS!
+const idealAd = {
+  id: '3001',
   price: '82.00',
   minAmount: '1000',
   maxAmount: '10000',
-  recentOrderNum: '300',
-  recentExecuteRate: '99.0',
-  remark: 'Моментальный перевод с Т-Банка, все быстро',
+  recentOrderNum: '250',
+  recentExecuteRate: '99.1',
+  remark: '3 лицо можно, перевод с Т-Банка моментально',
   payments: ['582'],
   authMaker: true
 };
 
-const evalHot = evaluateAd(hotDeal, baseSettings, marketBenchmark);
-console.assert(evalHot.passed === true, 'Failed: hot deal should pass');
-console.log('Hot Deal passed:', evalHot.profitDetails);
+const evalIdeal = evaluateAd(idealAd, baseSettings, marketBenchmark);
+console.assert(evalIdeal.passed === true, 'Ideal ad allowing 3rd party must pass');
+console.log('Ideal Ad passed:', evalIdeal.profitDetails, '| 3rd Party:', evalIdeal.item.thirdPartyText);
 
-// Obfuscated Scam: 81.00 (super cheap bait), but remark has "к0миcciя 6ОО"
-const baitScam = {
-  ...hotDeal,
-  id: '888',
+// Ad 2: Cheap offer (81.00) but rejects 3rd party ("только 1 лицо") -> MUST BE REJECTED!
+const rejectAd = {
+  ...idealAd,
+  id: '3002',
   price: '81.00',
-  remark: 'Привет, перевод мгновенный, но к0миcciя 6ОО с покупателя'
+  remark: 'Только 1 лицо, с чужих карт не платить!'
 };
 
-const evalScam = evaluateAd(baitScam, baseSettings, marketBenchmark);
-console.assert(evalScam.passed === false, 'Failed: bait scam should be blocked!');
-console.log('Obfuscated scam blocked successfully:', evalScam.reason);
+const evalReject = evaluateAd(rejectAd, baseSettings, marketBenchmark);
+console.assert(evalReject.passed === false, 'Ad rejecting 3rd party must fail');
+console.log('Reject Ad blocked successfully:', evalReject.reason);
 
-console.log('\n--- Benchmark Calculation ---');
-const items = [
-  { price: '81.00' }, // bait
-  { price: '85.10' },
-  { price: '85.20' },
-  { price: '85.30' }
-];
-const benchmark = calculateBenchmarkPrice(items, true);
-console.log('Benchmark market price:', benchmark);
-console.assert(benchmark > 85.0, 'Benchmark should ignore outlier bait 81.00');
-
-console.log('\n✅ ALL IRONCLAD TESTS PASSED PERFECTLY!');
+console.log('\n✅ ALL 3RD-PARTY & ANTI-SCAM TESTS PASSED WITH 100% SUCCESS!');

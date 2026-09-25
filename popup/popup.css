@@ -454,6 +454,28 @@ input:checked + .slider:before {
   border-radius: 4px;
 }
 
+.tp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 4px;
+}
+
+.tp-badge.allowed {
+  background: rgba(0, 230, 118, 0.18);
+  color: #00E676;
+  border: 1px solid rgba(0, 230, 118, 0.4);
+}
+
+.tp-badge.neutral {
+  background: rgba(255, 255, 255, 0.05);
+  color: #848E9C;
+  border: 1px solid var(--border-color);
+}
+
 .card-time {
   font-size: 10px;
   color: var(--text-muted);

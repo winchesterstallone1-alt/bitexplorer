@@ -23,6 +23,7 @@ export const DEFAULT_SETTINGS = {
   minDiscountPercent: '1.5', // Дешевле рынка на 1.5%
   fixedTargetPrice: '83.00', // Фиксированная цена
   intervalSeconds: 5, // Частота опроса
+  thirdPartyMode: 'explicit_only', // 'explicit_only' (только где написано '3 лицо можно/приму'), 'allow_and_neutral', 'off'
   enableBlacklist: true,
   stopWords: DEFAULT_STOP_WORDS,
   minOrders: 15,
@@ -95,8 +96,9 @@ async function playAlertSound(soundType = 'alert') {
 
 function showPushNotification(item, profitDetails, fiat) {
   const notifId = `bybit_p2p_${item.id}_${Date.now()}`;
-  const title = `🔥 Выгодный ордер: ${item.price} ${fiat}!`;
-  const message = `${profitDetails}\nМерчант: ${item.nickName} (${item.executeRate}% выполнено, ${item.orderNum} сделок)\nЛимиты: ${item.minAmount} - ${item.maxAmount} ${fiat}`;
+  const tpTag = item.thirdPartyStatus === 'allowed' ? ' [👤 3-е лицо РАЗРЕШЕНО]' : '';
+  const title = `🔥 Ордер: ${item.price} ${fiat}!${tpTag}`;
+  const message = `${profitDetails}\n${item.thirdPartyText || ''}\nМерчант: ${item.nickName} (${item.executeRate}% выполнено, ${item.orderNum} сделок)\nЛимиты: ${item.minAmount} - ${item.maxAmount} ${fiat}`;
 
   chrome.notifications.create(notifId, {
     type: 'basic',
