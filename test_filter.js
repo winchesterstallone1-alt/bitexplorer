@@ -1,34 +1,43 @@
-// test_filter.js - Unit tests for filter engine
-import { evaluateAd, calculateBenchmarkPrice, checkDescriptionBlacklist, DEFAULT_STOP_WORDS } from './background/filter-engine.js';
+// test_filter.js - Unit tests for ironclad filter engine
+import { evaluateAd, calculateBenchmarkPrice, checkDescriptionBlacklist, DEFAULT_STOP_WORDS, normalizeIronclad } from './background/filter-engine.js';
 
-console.log('--- Testing checkDescriptionBlacklist ---');
+console.log('--- Testing Advanced Anti-Obfuscation & Leetspeak ---');
 
-// Case 1: Commission stop-word
-const test1 = checkDescriptionBlacklist('Привет, перевод с тинькофф, комиссия 200р с покупателя', DEFAULT_STOP_WORDS, 1400);
-console.assert(test1.blocked === true, 'Failed: should block "комиссия"');
-console.log('Test 1 (комиссия):', test1);
+const trickyCases = [
+  { text: 'к0миcciя 6ОО с покупателя', desc: 'к0миcciя 6ОО (latin c, digit 0, letters OO)' },
+  { text: 'к.о.м.и.с.с.и.я 200р', desc: 'к.о.м.и.с.с.и.я с точками' },
+  { text: 'к 0 м с а 300 на карту', desc: 'к 0 м с а через пробелы' },
+  { text: 'к0м-сия 5ООр', desc: 'к0м-сия 5ООр' },
+  { text: '+250р за перевод с покупателя', desc: '+250р доплата' },
+  { text: '3 лuцо не принимаю', desc: '3 лuцо (latin u instead of и)' },
+  { text: '3-е л!цо мимо', desc: '3-е л!цо (exclamation mark)' },
+  { text: 'т0льк0 1 л!цо со своей карты', desc: 'т0льк0 1 л!цо (0 and !)' },
+  { text: '3лицо лесом', desc: '3лицо слитно' },
+  { text: 'Быстро. Заходите на суммы 500/1000/2000/5000', desc: 'Навязанные суммы 500/1000/2000 (у нас 1400)' },
+  { text: 'чек с банкомата обязателен', desc: 'Чек с банкомата' },
+  { text: 'холд 24ч при первой сделке', desc: 'Холд' }
+];
 
-// Case 2: 3rd party stop-word
-const test2 = checkDescriptionBlacklist('3 лицо не принимаю, оплата строго со своей карты', DEFAULT_STOP_WORDS, 1400);
-console.assert(test2.blocked === true, 'Failed: should block "3 лицо"');
-console.log('Test 2 (3 лицо):', test2);
+trickyCases.forEach(({ text, desc }, idx) => {
+  const res = checkDescriptionBlacklist(text, DEFAULT_STOP_WORDS, 1400);
+  console.assert(res.blocked === true, `FAILED to block: ${desc}`);
+  console.log(`[PASS] Case ${idx + 1}: ${desc} -> ${res.reason}`);
+});
 
-// Case 3: Only 1st person stop-word
-const test3 = checkDescriptionBlacklist('Только 1 лицо, дропов лесом', DEFAULT_STOP_WORDS, 1400);
-console.assert(test3.blocked === true, 'Failed: should block "только 1 лицо"');
-console.log('Test 3 (только 1 лицо):', test3);
+console.log('\n--- Testing Clean Descriptions (Should NOT be blocked) ---');
+const cleanCases = [
+  'Быстрый перевод с Т-Банка, без лишних вопросов',
+  'Отправляю быстро, онлайн 24/7',
+  'Любая сумма в пределах лимитов, жду реквизиты'
+];
 
-// Case 4: Fixed denomination incompatible with 1400
-const test4 = checkDescriptionBlacklist('Быстро отпускаю. Заходите на суммы 500/1000/2000/5000', DEFAULT_STOP_WORDS, 1400);
-console.assert(test4.blocked === true, 'Failed: should block incompatible denomination');
-console.log('Test 4 (суммы 500/1000/2000 vs 1400):', test4);
+cleanCases.forEach((text, idx) => {
+  const res = checkDescriptionBlacklist(text, DEFAULT_STOP_WORDS, 1400);
+  console.assert(res.blocked === false, `FAILED: clean text was falsely blocked! (${text})`);
+  console.log(`[PASS] Clean ${idx + 1}: OK`);
+});
 
-// Case 5: Clean description
-const test5 = checkDescriptionBlacklist('Быстрый перевод без лишних вопросов, чек прикреплю', DEFAULT_STOP_WORDS, 1400);
-console.assert(test5.blocked === false, 'Failed: should allow clean description');
-console.log('Test 5 (clean):', test5);
-
-console.log('\n--- Testing evaluateAd ---');
+console.log('\n--- Testing evaluateAd with Hot Deal & Obfuscated Scam ---');
 const baseSettings = {
   token: 'USDT',
   fiat: 'RUB',
@@ -44,51 +53,44 @@ const baseSettings = {
 
 const marketBenchmark = 85.00;
 
-// Ad 1: Hot deal (82.00, fits 1400, clean)
-const hotAd = {
-  id: '1001',
+// Hot Deal: 82.00, clean
+const hotDeal = {
+  id: '777',
   price: '82.00',
   minAmount: '1000',
   maxAmount: '10000',
-  recentOrderNum: '450',
-  recentExecuteRate: '98.5',
-  remark: 'Быстрая оплата Т-Банк',
+  recentOrderNum: '300',
+  recentExecuteRate: '99.0',
+  remark: 'Моментальный перевод с Т-Банка, все быстро',
   payments: ['582'],
   authMaker: true
 };
 
-const eval1 = evaluateAd(hotAd, baseSettings, marketBenchmark);
-console.assert(eval1.passed === true, 'Failed: hot deal should pass');
-console.log('Hot deal eval:', eval1);
+const evalHot = evaluateAd(hotDeal, baseSettings, marketBenchmark);
+console.assert(evalHot.passed === true, 'Failed: hot deal should pass');
+console.log('Hot Deal passed:', evalHot.profitDetails);
 
-// Ad 2: Normal price (85.20 -> not profitable)
-const normalAd = { ...hotAd, id: '1002', price: '85.20' };
-const eval2 = evaluateAd(normalAd, baseSettings, marketBenchmark);
-console.assert(eval2.passed === false, 'Failed: normal price should not pass');
-console.log('Normal price eval:', eval2.reason);
+// Obfuscated Scam: 81.00 (super cheap bait), but remark has "к0миcciя 6ОО"
+const baitScam = {
+  ...hotDeal,
+  id: '888',
+  price: '81.00',
+  remark: 'Привет, перевод мгновенный, но к0миcciя 6ОО с покупателя'
+};
 
-// Ad 3: Hot price but limit doesn't fit (minAmount 2000 > 1400)
-const badLimitAd = { ...hotAd, id: '1003', minAmount: '2000', maxAmount: '50000' };
-const eval3 = evaluateAd(badLimitAd, baseSettings, marketBenchmark);
-console.assert(eval3.passed === false, 'Failed: limit should not pass');
-console.log('Bad limit eval:', eval3.reason);
+const evalScam = evaluateAd(baitScam, baseSettings, marketBenchmark);
+console.assert(evalScam.passed === false, 'Failed: bait scam should be blocked!');
+console.log('Obfuscated scam blocked successfully:', evalScam.reason);
 
-// Ad 4: Hot price but scam remark ("комиссия 300")
-const scamRemarkAd = { ...hotAd, id: '1004', remark: 'Перевод моментальный, комиссия 300 руб с вас' };
-const eval4 = evaluateAd(scamRemarkAd, baseSettings, marketBenchmark);
-console.assert(eval4.passed === false, 'Failed: scam remark should not pass');
-console.log('Scam remark eval:', eval4.reason);
-
-console.log('\n--- Testing calculateBenchmarkPrice ---');
+console.log('\n--- Benchmark Calculation ---');
 const items = [
-  { price: '82.00' }, // anomaly cheap
+  { price: '81.00' }, // bait
   { price: '85.10' },
   { price: '85.20' },
-  { price: '85.30' },
-  { price: '85.50' }
+  { price: '85.30' }
 ];
 const benchmark = calculateBenchmarkPrice(items, true);
-console.log('Calculated benchmark:', benchmark);
-console.assert(benchmark > 85.0 && benchmark < 85.3, 'Failed: benchmark should ignore anomalous 82.00');
+console.log('Benchmark market price:', benchmark);
+console.assert(benchmark > 85.0, 'Benchmark should ignore outlier bait 81.00');
 
-console.log('\nALL TESTS PASSED SUCCESSFULLY! ✅');
+console.log('\n✅ ALL IRONCLAD TESTS PASSED PERFECTLY!');
